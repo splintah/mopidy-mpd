@@ -26,6 +26,7 @@ class Extension(ext.Extension):
         schema["zeroconf"] = config.String(optional=True)
         schema["command_blacklist"] = config.List(optional=True)
         schema["default_playlist_scheme"] = config.String()
+        schema["multiple_tags"] = config.Boolean(optional=True)
         return schema
 
     def setup(self, registry):

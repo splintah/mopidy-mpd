@@ -9,17 +9,23 @@ from tests import path_utils
 class TrackMpdFormatTest(unittest.TestCase):
     track = Track(
         uri="à uri",
-        artists=[Artist(name="an artist")],
+        artists=[Artist(name="an artist"), Artist(name="yet another artist")],
         name="a nàme",
         album=Album(
             name="an album",
             num_tracks=13,
-            artists=[Artist(name="an other artist")],
+            artists=[
+                Artist(name="an other artist"),
+                Artist(name="still another artist"),
+            ],
             uri="urischeme:àlbum:12345",
         ),
         track_no=7,
-        composers=[Artist(name="a composer")],
-        performers=[Artist(name="a performer")],
+        composers=[Artist(name="a composer"), Artist(name="another composer")],
+        performers=[
+            Artist(name="a performer"),
+            Artist(name="another performer"),
+        ],
         genre="a genre",
         date="1977-01-01",
         disc_no=1,
@@ -66,14 +72,32 @@ class TrackMpdFormatTest(unittest.TestCase):
         result = translator.track_to_mpd_format(
             TlTrack(122, self.track), position=9
         )
+
+        def split_values(tag):
+            values = [r for r in result if r[0] == tag]
+            assert len(values) == 1
+            return set(values[0][1].split(";"))
+
         assert ("file", "à uri") in result
         assert ("Time", 137) in result
-        assert ("Artist", "an artist") in result
+        assert split_values("Artist") == {
+            "yet another artist",
+            "an artist",
+        }
         assert ("Title", "a nàme") in result
         assert ("Album", "an album") in result
-        assert ("AlbumArtist", "an other artist") in result
-        assert ("Composer", "a composer") in result
-        assert ("Performer", "a performer") in result
+        assert split_values("AlbumArtist") == {
+            "an other artist",
+            "still another artist",
+        }
+        assert split_values("Composer") == {
+            "another composer",
+            "a composer",
+        }
+        assert split_values("Performer") == {
+            "a performer",
+            "another performer",
+        }
         assert ("Genre", "a genre") in result
         assert ("Track", "7/13") in result
         assert ("Date", "1977-01-01") in result
@@ -83,6 +107,32 @@ class TrackMpdFormatTest(unittest.TestCase):
         assert ("X-AlbumUri", "urischeme:àlbum:12345") in result
         assert ("Comment", "a comment") not in result
         assert len(result) == 15
+
+    def test_track_to_mpd_format_for_nonempty_track_with_multiple_tags(self):
+        result = translator.track_to_mpd_format(
+            TlTrack(122, self.track), position=9, multiple_tags=True
+        )
+        assert ("file", "à uri") in result
+        assert ("Time", 137) in result
+        assert ("Artist", "an artist") in result
+        assert ("Artist", "yet another artist") in result
+        assert ("Title", "a nàme") in result
+        assert ("Album", "an album") in result
+        assert ("AlbumArtist", "an other artist") in result
+        assert ("AlbumArtist", "still another artist") in result
+        assert ("Composer", "a composer") in result
+        assert ("Composer", "another composer") in result
+        assert ("Performer", "a performer") in result
+        assert ("Performer", "another performer") in result
+        assert ("Genre", "a genre") in result
+        assert ("Track", "7/13") in result
+        assert ("Date", "1977-01-01") in result
+        assert ("Disc", 1) in result
+        assert ("Pos", 9) in result
+        assert ("Id", 122) in result
+        assert ("X-AlbumUri", "urischeme:àlbum:12345") in result
+        assert ("Comment", "a comment") not in result
+        assert len(result) == 19
 
     def test_track_to_mpd_format_with_last_modified(self):
         track = self.track.replace(last_modified=995303899000)

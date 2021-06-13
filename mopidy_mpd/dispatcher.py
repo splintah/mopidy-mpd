@@ -239,6 +239,9 @@ class MpdContext:
     #: The subsytems that we want to be notified about in idle mode.
     subscriptions = None
 
+    #: Whether to use multiple tags for e.g. artists.
+    multiple_tags = None
+
     _uri_map = None
 
     def __init__(
@@ -248,6 +251,7 @@ class MpdContext:
         self.session = session
         if config is not None:
             self.password = config["mpd"]["password"]
+            self.multiple_tags = config["mpd"]["multiple_tags"]
         self.core = core
         self.events = set()
         self.subscriptions = set()

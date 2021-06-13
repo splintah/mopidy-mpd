@@ -28,7 +28,11 @@ class BaseTestCase(unittest.TestCase):
     def get_config(self):
         return {
             "core": {"max_tracklist_length": 10000},
-            "mpd": {"password": None, "default_playlist_scheme": "dummy"},
+            "mpd": {
+                "password": None,
+                "default_playlist_scheme": "dummy",
+                "multiple_tags": False,
+            },
         }
 
     def setUp(self):  # noqa: N802

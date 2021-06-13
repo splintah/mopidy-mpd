@@ -126,6 +126,12 @@ The following configuration values are available:
   creating a playlist from the given tracks.
   Default: ``m3u``
 
+- ``mpd/multiple_tags``:
+  Use multiple tags when a track has multiple artists, album artists, composers
+  or performers, instead of concatenating the names separated by a semicolon
+  into one tag.
+  Default: false.
+
 
 Limitations
 ===========

@@ -14,7 +14,13 @@ from tests import dummy_backend
 
 class MpdDispatcherTest(unittest.TestCase):
     def setUp(self):  # noqa: N802
-        config = {"mpd": {"password": None, "command_blacklist": ["disabled"]}}
+        config = {
+            "mpd": {
+                "password": None,
+                "command_blacklist": ["disabled"],
+                "multiple_tags": False,
+            }
+        }
         self.backend = dummy_backend.create_proxy()
         self.dispatcher = MpdDispatcher(config=config)
 

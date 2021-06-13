@@ -18,7 +18,9 @@ def normalize_path(path, relative=False):
     return "/".join(parts)
 
 
-def track_to_mpd_format(track, position=None, stream_title=None):
+def track_to_mpd_format(
+    track, position=None, stream_title=None, multiple_tags=False
+):
     """
     Format track for output to MPD client.
 
@@ -28,6 +30,8 @@ def track_to_mpd_format(track, position=None, stream_title=None):
     :type position: integer
     :param stream_title: the current streams title
     :type position: string
+    :param multiple_tags: whether to use multiple tags for e.g. artists
+    :type multiple_tags: boolean
     :rtype: list of two-tuples
     """
     if isinstance(track, TlTrack):
@@ -42,9 +46,13 @@ def track_to_mpd_format(track, position=None, stream_title=None):
     result = [
         ("file", track.uri),
         ("Time", track.length and (track.length // 1000) or 0),
-        ("Artist", concat_multi_values(track.artists, "name")),
         ("Album", track.album and track.album.name or ""),
     ]
+
+    if multiple_tags:
+        result += multi_tag_list(track.artists, "name", "Artist")
+    else:
+        result.append(("Artist", concat_multi_values(track.artists, "name")))
 
     if stream_title is not None:
         result.append(("Title", stream_title))
@@ -69,9 +77,16 @@ def track_to_mpd_format(track, position=None, stream_title=None):
         result.append(("MUSICBRAINZ_ALBUMID", track.album.musicbrainz_id))
 
     if track.album is not None and track.album.artists:
-        result.append(
-            ("AlbumArtist", concat_multi_values(track.album.artists, "name"))
-        )
+        if multiple_tags:
+            result += multi_tag_list(track.album.artists, "name", "AlbumArtist")
+        else:
+            result.append(
+                (
+                    "AlbumArtist",
+                    concat_multi_values(track.album.artists, "name"),
+                )
+            )
+
         musicbrainz_ids = concat_multi_values(
             track.album.artists, "musicbrainz_id"
         )
@@ -84,14 +99,20 @@ def track_to_mpd_format(track, position=None, stream_title=None):
             result.append(("MUSICBRAINZ_ARTISTID", musicbrainz_ids))
 
     if track.composers:
-        result.append(
-            ("Composer", concat_multi_values(track.composers, "name"))
-        )
+        if multiple_tags:
+            result += multi_tag_list(track.composers, "name", "Composer")
+        else:
+            result.append(
+                ("Composer", concat_multi_values(track.composers, "name"))
+            )
 
     if track.performers:
-        result.append(
-            ("Performer", concat_multi_values(track.performers, "name"))
-        )
+        if multiple_tags:
+            result += multi_tag_list(track.performers, "name", "Performer")
+        else:
+            result.append(
+                ("Performer", concat_multi_values(track.performers, "name"))
+            )
 
     if track.genre:
         result.append(("Genre", track.genre))
@@ -151,7 +172,29 @@ def concat_multi_values(models, attribute):
     )
 
 
-def tracks_to_mpd_format(tracks, start=0, end=None):
+def multi_tag_list(models, attribute, tag):
+    """
+    Format Mopidy model values for output to MPD client in a list with one tag
+    per value.
+
+    :param models: the models
+    :type models: array of :class:`mopidy.models.Artist`,
+        :class:`mopidy.models.Album` or :class:`mopidy.models.Track`
+    :param attribute: the attribute to use
+    :type attribute: string
+    :param tag: the name of the tag
+    :type tag: string
+    :rtype: list of tuples of string and attribute value
+    """
+
+    return [
+        (tag, getattr(m, attribute))
+        for m in models
+        if getattr(m, attribute, None) is not None
+    ]
+
+
+def tracks_to_mpd_format(tracks, start=0, end=None, multiple_tags=False):
     """
     Format list of tracks for output to MPD client.
 
@@ -164,6 +207,8 @@ def tracks_to_mpd_format(tracks, start=0, end=None):
     :type start: int (positive or negative)
     :param end: position after last track to include in output
     :type end: int (positive or negative) or :class:`None` for end of list
+    :param multiple_tags: whether to use multiple tags for e.g. artists
+    :type multiple_tags: boolean
     :rtype: list of lists of two-tuples
     """
     if end is None:
@@ -173,7 +218,9 @@ def tracks_to_mpd_format(tracks, start=0, end=None):
     assert len(tracks) == len(positions)
     result = []
     for track, position in zip(tracks, positions):
-        formatted_track = track_to_mpd_format(track, position)
+        formatted_track = track_to_mpd_format(
+            track, position, multiple_tags=multiple_tags
+        )
         if formatted_track:
             result.append(formatted_track)
     return result
